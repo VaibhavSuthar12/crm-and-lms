@@ -1,0 +1,630 @@
+{
+  "info": {
+    "name": "CRM Backend API — Laravel 12",
+    "_postman_id": "crm-laravel-12-collection",
+    "description": "Complete CRM Backend REST API built with Laravel 12, Sanctum Auth, and Spatie Permissions.\n\n## Setup\n1. Set `base_url` variable to `http://localhost:8000`\n2. Run **Login** request — token is auto-saved to `token` variable\n3. All protected requests use Bearer token automatically\n\n## Roles\n- **Admin** → admin@crm.com / Admin@1234\n- **Sales Manager** → manager@crm.com / Manager@1234\n- **Sales Executive** → exec@crm.com / Exec@1234",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",    "value": "http://localhost:8000", "type": "string" },
+    { "key": "token",       "value": "",                      "type": "string" },
+    { "key": "lead_id",     "value": "1",                     "type": "string" },
+    { "key": "customer_id", "value": "1",                     "type": "string" },
+    { "key": "task_id",     "value": "1",                     "type": "string" },
+    { "key": "user_id",     "value": "1",                     "type": "string" },
+    { "key": "contact_id",  "value": "1",                     "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\",\n  \"password_confirmation\": \"Password@123\",\n  \"role\": \"Sales Executive\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"message\": \"User registered successfully.\",\n  \"user\": {\n    \"id\": 4,\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"is_active\": true,\n    \"roles\": [{ \"name\": \"Sales Executive\" }]\n  },\n  \"token\": \"1|abcdef...\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "  pm.collectionVariables.set('token', res.token);",
+                  "  pm.test('Token saved', () => pm.expect(res.token).to.be.a('string'));",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@crm.com\",\n  \"password\": \"Admin@1234\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Login successful.\",\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"CRM Admin\",\n    \"email\": \"admin@crm.com\",\n    \"roles\": [{ \"name\": \"Admin\" }]\n  },\n  \"token\": \"1|abcdef...\"\n}"
+            },
+            {
+              "name": "401 Invalid Credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"message\": \"Invalid credentials.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Me (Profile)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/me", "host": ["{{base_url}}"], "path": ["api", "auth", "me"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"CRM Admin\",\n    \"email\": \"admin@crm.com\",\n    \"is_active\": true,\n    \"roles\": [{ \"name\": \"Admin\" }],\n    \"permissions\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) pm.collectionVariables.set('token', res.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/refresh", "host": ["{{base_url}}"], "path": ["api", "auth", "refresh"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api", "auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard",
+      "item": [
+        {
+          "name": "Dashboard Stats",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/dashboard", "host": ["{{base_url}}"], "path": ["api", "dashboard"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"stats\": {\n    \"total_leads\": 142,\n    \"total_customers\": 38,\n    \"todays_followups\": 5,\n    \"overdue_tasks\": 3,\n    \"conversion_rate\": 26.76\n  },\n  \"leads_by_status\": {\n    \"New\": 40,\n    \"Contacted\": 32,\n    \"Qualified\": 28,\n    \"Proposal Sent\": 15,\n    \"Won\": 20,\n    \"Lost\": 7\n  },\n  \"recent_activities\": []\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎯 Leads",
+      "item": [
+        {
+          "name": "List Leads",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/leads?page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads"],
+              "query": [
+                { "key": "page",        "value": "1" },
+                { "key": "per_page",    "value": "15" },
+                { "key": "search",      "value": "",        "disabled": true, "description": "Search by name, email, company" },
+                { "key": "status",      "value": "New",     "disabled": true, "description": "New | Contacted | Qualified | Proposal Sent | Won | Lost" },
+                { "key": "assigned_to", "value": "1",       "disabled": true, "description": "Filter by user ID" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — Paginated",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"current_page\": 1,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"title\": \"Enterprise Software Deal\",\n      \"first_name\": \"Alice\",\n      \"last_name\": \"Smith\",\n      \"email\": \"alice@acme.com\",\n      \"phone\": \"+91-9876543210\",\n      \"company\": \"Acme Corp\",\n      \"source\": \"Website\",\n      \"status\": \"New\",\n      \"value\": \"50000.00\",\n      \"assigned_to\": 3,\n      \"created_by\": 1,\n      \"assignee\": { \"id\": 3, \"name\": \"Sales Executive\" }\n    }\n  ],\n  \"per_page\": 15,\n  \"total\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Lead",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.lead && res.lead.id) pm.collectionVariables.set('lead_id', res.lead.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/leads", "host": ["{{base_url}}"], "path": ["api", "leads"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Enterprise Software Deal\",\n  \"first_name\": \"Alice\",\n  \"last_name\": \"Smith\",\n  \"email\": \"alice@acme.com\",\n  \"phone\": \"+91-9876543210\",\n  \"company\": \"Acme Corp\",\n  \"source\": \"Website\",\n  \"status\": \"New\",\n  \"value\": 50000,\n  \"notes\": \"Interested in enterprise plan\",\n  \"assigned_to\": 3\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"message\": \"Lead created successfully.\",\n  \"lead\": {\n    \"id\": 1,\n    \"title\": \"Enterprise Software Deal\",\n    \"status\": \"New\",\n    \"created_by\": 1\n  }\n}"
+            },
+            {
+              "name": "422 Validation Error",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "body": "{\n  \"message\": \"Validation failed.\",\n  \"errors\": {\n    \"title\": [\"The title field is required.\"],\n    \"first_name\": [\"The first name field is required.\"]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Show Lead",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/leads/{{lead_id}}", "host": ["{{base_url}}"], "path": ["api", "leads", "{{lead_id}}"] }
+          }
+        },
+        {
+          "name": "Update Lead",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/leads/{{lead_id}}", "host": ["{{base_url}}"], "path": ["api", "leads", "{{lead_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Enterprise Deal\",\n  \"status\": \"Contacted\",\n  \"value\": 75000,\n  \"notes\": \"Follow-up scheduled for next week\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Lead",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/leads/{{lead_id}}", "host": ["{{base_url}}"], "path": ["api", "leads", "{{lead_id}}"] }
+          }
+        },
+        {
+          "name": "Assign Lead",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/leads/{{lead_id}}/assign", "host": ["{{base_url}}"], "path": ["api", "leads", "{{lead_id}}", "assign"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assigned_to\": 3\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Lead Status",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/leads/{{lead_id}}/status", "host": ["{{base_url}}"], "path": ["api", "leads", "{{lead_id}}", "status"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Qualified\"\n}"
+            },
+            "description": "Valid statuses: New | Contacted | Qualified | Proposal Sent | Won | Lost"
+          }
+        },
+        {
+          "name": "Lead Activity Timeline",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/leads/{{lead_id}}/timeline", "host": ["{{base_url}}"], "path": ["api", "leads", "{{lead_id}}", "timeline"] }
+          }
+        },
+        {
+          "name": "Convert Lead to Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.customer && res.customer.id) pm.collectionVariables.set('customer_id', res.customer.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/leads/{{lead_id}}/convert", "host": ["{{base_url}}"], "path": ["api", "leads", "{{lead_id}}", "convert"] }
+          },
+          "response": [
+            {
+              "name": "201 Converted",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"message\": \"Lead converted to customer successfully.\",\n  \"customer\": {\n    \"id\": 1,\n    \"first_name\": \"Alice\",\n    \"last_name\": \"Smith\",\n    \"email\": \"alice@acme.com\",\n    \"lead_id\": 1\n  }\n}"
+            },
+            {
+              "name": "422 Already Converted",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "body": "{\n  \"message\": \"This lead has already been converted.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👥 Customers",
+      "item": [
+        {
+          "name": "List Customers",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/customers?page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "15" },
+                { "key": "search",   "value": "", "disabled": true, "description": "Search by name, email, company" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Show Customer",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}"] }
+          },
+          "response": [
+            {
+              "name": "200 OK — Full Profile",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"customer\": {\n    \"id\": 1,\n    \"first_name\": \"Alice\",\n    \"last_name\": \"Smith\",\n    \"email\": \"alice@acme.com\",\n    \"company_name\": \"Acme Corp\",\n    \"contacts\": [],\n    \"notes\": [],\n    \"tasks\": [],\n    \"activities\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Alice\",\n  \"last_name\": \"Smith\",\n  \"email\": \"alice@acme.com\",\n  \"phone\": \"+91-9876543210\",\n  \"company_name\": \"Acme Corporation\",\n  \"company_website\": \"https://acme.com\",\n  \"company_size\": \"100-500\",\n  \"industry\": \"Technology\",\n  \"address\": \"123 Main Street\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"postal_code\": \"400001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}"] }
+          }
+        },
+        {
+          "name": "Customer Activity Timeline",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}/timeline", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}", "timeline"] }
+          }
+        },
+        {
+          "name": "Add Contact",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}/contacts", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}", "contacts"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bob Johnson\",\n  \"title\": \"CTO\",\n  \"email\": \"bob@acme.com\",\n  \"phone\": \"+91-9123456789\",\n  \"is_primary\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Contact",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}/contacts/{{contact_id}}", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}", "contacts", "{{contact_id}}"] }
+          }
+        },
+        {
+          "name": "Add Note to Customer",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}/notes", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}", "notes"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Customer requested a product demo for next Tuesday. Decision maker is the CTO.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "✅ Tasks",
+      "item": [
+        {
+          "name": "List Tasks",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/tasks?page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "15" },
+                { "key": "status",   "value": "Pending",  "disabled": true, "description": "Pending | In Progress | Completed | Cancelled" },
+                { "key": "priority", "value": "High",     "disabled": true, "description": "Low | Medium | High" },
+                { "key": "overdue",  "value": "true",     "disabled": true, "description": "Show only overdue tasks" },
+                { "key": "today",    "value": "true",     "disabled": true, "description": "Show today's follow-ups" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.task && res.task.id) pm.collectionVariables.set('task_id', res.task.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/tasks", "host": ["{{base_url}}"], "path": ["api", "tasks"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Follow-up call with Alice\",\n  \"description\": \"Discuss proposal pricing and timeline\",\n  \"lead_id\": {{lead_id}},\n  \"assigned_to\": 3,\n  \"priority\": \"High\",\n  \"status\": \"Pending\",\n  \"due_date\": \"2026-07-05\",\n  \"reminder_at\": \"2026-07-05 09:00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Show Task",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/tasks/{{task_id}}", "host": ["{{base_url}}"], "path": ["api", "tasks", "{{task_id}}"] }
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/tasks/{{task_id}}", "host": ["{{base_url}}"], "path": ["api", "tasks", "{{task_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Follow-up call with Alice — Rescheduled\",\n  \"priority\": \"High\",\n  \"status\": \"In Progress\",\n  \"due_date\": \"2026-07-10\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/tasks/{{task_id}}", "host": ["{{base_url}}"], "path": ["api", "tasks", "{{task_id}}"] }
+          }
+        },
+        {
+          "name": "Mark Task Complete",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/tasks/{{task_id}}/complete", "host": ["{{base_url}}"], "path": ["api", "tasks", "{{task_id}}", "complete"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Task marked as complete.\",\n  \"task\": {\n    \"id\": 1,\n    \"status\": \"Completed\",\n    \"completed_at\": \"2026-06-29T10:30:00.000000Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📋 Activities",
+      "item": [
+        {
+          "name": "Global Activity Feed",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/activities?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "activities"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "20" },
+                { "key": "type",     "value": "Lead Created", "disabled": true, "description": "Lead Created | Lead Assigned | Status Changed | Customer Converted | Note Added | Task Created | Task Completed" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"current_page\": 1,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"type\": \"Lead Created\",\n      \"description\": \"Lead 'Enterprise Software Deal' was created.\",\n      \"properties\": { \"lead_title\": \"Enterprise Software Deal\" },\n      \"user\": { \"id\": 1, \"name\": \"CRM Admin\" },\n      \"lead\": { \"id\": 1, \"title\": \"Enterprise Software Deal\" },\n      \"created_at\": \"2026-06-29T10:00:00.000000Z\"\n    }\n  ],\n  \"total\": 1\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔧 Admin — Users",
+      "description": "These endpoints require Admin role.",
+      "item": [
+        {
+          "name": "List All Users",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/users", "host": ["{{base_url}}"], "path": ["api", "users"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"current_page\": 1,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"CRM Admin\",\n      \"email\": \"admin@crm.com\",\n      \"is_active\": true,\n      \"roles\": [{ \"name\": \"Admin\" }]\n    },\n    {\n      \"id\": 2,\n      \"name\": \"Sales Manager\",\n      \"email\": \"manager@crm.com\",\n      \"is_active\": true,\n      \"roles\": [{ \"name\": \"Sales Manager\" }]\n    }\n  ],\n  \"total\": 3\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"message\": \"User does not have the right roles.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Toggle User Active Status",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/users/{{user_id}}/toggle-active", "host": ["{{base_url}}"], "path": ["api", "users", "{{user_id}}", "toggle-active"] }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"User status updated.\",\n  \"is_active\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Assign Role to User",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/users/{{user_id}}/assign-role", "host": ["{{base_url}}"], "path": ["api", "users", "{{user_id}}", "assign-role"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Sales Manager\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Valid roles: Admin | Sales Manager | Sales Executive"
+          }
+        }
+      ]
+    }
+  ]
+}
